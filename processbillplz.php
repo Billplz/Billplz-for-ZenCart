@@ -5,7 +5,7 @@
  * 
  * @package Payment Gateway
  * @author Wanzul-Hosting.com <sales@wanzul-hosting.com>
- * @version 2.0.0
+ * @version 3.0.0
  */
 
 if (!isset($_GET['billplz']['id'])){
