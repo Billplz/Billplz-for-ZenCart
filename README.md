@@ -18,6 +18,17 @@ Accept Payment Using Billplz
 5. Insert API Key, Collection ID and Number "1" without double quotes at Mode: Production/Staging
 6. Update. Your ZenCart are Billplz ready!
 
+# Uninstallation
+1. Access to ZenCrt Administration
+2. Deactivate & Uninstall Billplz Payment Gateway
+3. Delete files: 
+* billplzcreate.php
+* process_callback_billplz.php
+* processbillplz.php
+* /includes/languages/english/modules/payment/billplz.php
+* /modules/payment/billplz.php
+4. Done
+
 # Support
 * Email: sales@wanzul-hosting.com
 * Whatsapp: 014-5356443
