@@ -234,10 +234,10 @@ class billplz {
         $oid = $oid->fields['oid'];
         $modeprosand = MODULE_PAYMENT_BILLPLZ_MODE;
         //$vcode = md5($OrderAmt.MODULE_PAYMENT_BILLPLZ_ID.$oid.MODULE_PAYMENT_BILLPLZ_VKEY);
-
+		$passwordapi = password_hash(MODULE_PAYMENT_BILLPLZ_ID, PASSWORD_DEFAULT);
         $process_button_string = 
         zen_draw_hidden_field('currency', strtolower($currency)) . 
-		zen_draw_hidden_field('passwordapi', MODULE_PAYMENT_BILLPLZ_ID) .
+		zen_draw_hidden_field('passwordapi', $passwordapi) .
         zen_draw_hidden_field('bill_desc', $pname) .
         zen_draw_hidden_field('orderid', $oid) .
         zen_draw_hidden_field('modestaging', $modeprosand).
