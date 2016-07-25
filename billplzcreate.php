@@ -9,6 +9,9 @@
 if (!isset($_POST['securityToken'])){
 	exit;
 }
+if (!isset($_POST['passwordapi'])){
+	exit;
+}
 function DapatkanLink($host, $api_key, $billplz_data){
 	$process = curl_init($host );
 	curl_setopt($process, CURLOPT_HEADER, 0);
@@ -44,6 +47,10 @@ function DapatkanLink($host, $api_key, $billplz_data){
 }
 
 require('includes/application_top.php');
+
+if (!password_verify(MODULE_PAYMENT_BILLPLZ_ID,$_POST['passwordapi'])){
+	exit;
+}
 
 $securityToken = $_POST['securityToken'];
 $mode = $_POST['modestaging'];
