@@ -237,6 +237,7 @@ class billplz {
 
         $process_button_string = 
         zen_draw_hidden_field('currency', strtolower($currency)) . 
+		zen_draw_hidden_field('passwordapi', MODULE_PAYMENT_BILLPLZ_ID) .
         zen_draw_hidden_field('bill_desc', $pname) .
         zen_draw_hidden_field('orderid', $oid) .
         zen_draw_hidden_field('modestaging', $modeprosand).
