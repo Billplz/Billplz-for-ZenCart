@@ -24,6 +24,7 @@ function DapatkanLink($host, $api_key, $billplz_data) {
     $return = curl_exec($process);
     curl_close($process);
     $arr = json_decode($return, true);
+    
     if (isset($arr['error'])) {
         unset($billplz_data['mobile']);
         $process = curl_init($host);
@@ -96,10 +97,10 @@ $data = array(
     'reference_1_label' => "ID",
     'reference_1' => $orderid,
     'deliver' => 'false',
-    'description' => $bill_desc,
+    'description' => 'Payment for Purchase', //Temporary Solution. Need to check
     'redirect_url' => $redirecturl,
     'callback_url' => $callbackurl
 );
 
 $url = DapatkanLink($urlpath, $api_key, $data);
-header('Location: ' . $url['url']);
+header('Location: ' . $url['url'].'?auto_submit=fpx');
