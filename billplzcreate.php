@@ -26,7 +26,7 @@ function DapatkanLink($host, $api_key, $billplz_data) {
     $arr = json_decode($return, true);
     if (isset($arr['error'])) {
         unset($billplz_data['mobile']);
-        $process = curl_init($host . "bills/");
+        $process = curl_init($host);
         curl_setopt($process, CURLOPT_HEADER, 0);
         curl_setopt($process, CURLOPT_USERPWD, $api_key . ":");
         curl_setopt($process, CURLOPT_TIMEOUT, 30);
@@ -102,6 +102,4 @@ $data = array(
 );
 
 $url = DapatkanLink($urlpath, $api_key, $data);
-//var_dump($data);
-//var_dump($url);
 header('Location: ' . $url['url']);
