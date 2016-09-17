@@ -97,7 +97,7 @@ $data = array(
     'reference_1_label' => "ID",
     'reference_1' => $orderid,
     'deliver' => 'false',
-    'description' => 'Payment for Purchase', //Temporary Solution. Need to check
+    'description' => $bill_desc,
     'redirect_url' => $redirecturl,
     'callback_url' => $callbackurl
 );
