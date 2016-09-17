@@ -1,4 +1,5 @@
 <?php
+<?php
 
 /**
  * Billplz ZenCart Plugin
@@ -60,8 +61,9 @@ if ( ENABLE_SSL != "false" )
 
 		$db->Execute("delete from ". TABLE_CUSTOMERS_BASKET);
 		unset($_SESSION['cart']);
-		$jump = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'].dirname($_SERVER['PHP_SELF'])."/index.php?main_page=checkout_success";
-		header('Location: '.$jump);
+		//$jump = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'].dirname($_SERVER['PHP_SELF'])."/index.php?main_page=checkout_success";
+		//header('Location: '.$jump);
+                zen_redirect(zen_href_link(FILENAME_CHECKOUT_SUCCESS, '', $ssl, true, false));
 	}
 	else
 	{
