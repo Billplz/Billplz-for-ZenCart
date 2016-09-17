@@ -217,7 +217,7 @@ class billplz {
     function process_button() {
         global $_POST, $languages_id, $shipping_cost, $total_cost, $shipping_selected, $shipping_method, $currencies, $currency, $customer_id, $db, $order;
 
-        $prod = $order->product;
+        $prod = $order->products;
 
         while (list($key, $val) = each($order->products)) {
             $pname.= $val[name] . " x " . $val[qty] . "\n";
