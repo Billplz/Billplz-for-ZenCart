@@ -1,47 +1,41 @@
 <?php
 
-/**
- * Billplz ZenCart Plugin
- * 
- * @package Payment Gateway
- * @author Wanzul-Hosting.com <sales@wanzul-hosting.com>
- * @version 3.0.0
- */
-class billplz {
+class billplz extends base
+{
 
-    public $code,
-            $title,
-            $description,
-            $enabled;
+    public $code = 'billplz';
+    public $title = 'Billplz';
+    public $description = 'Accept Payment using Billplz';
+    public $enabled = ((MODULE_PAYMENT_BILLPLZ_STATUS == 'True') ? true : false);
+    public $sort_order = MODULE_PAYMENT_BILLPLZ_SORT_ORDER;
+    public $order_status = null;
+    public $form_action_url = null;
 
-    function billplz() {
-        global $db, $order;
-        $this->code = 'billplz';
-        $this->title = MODULE_PAYMENT_BILLPLZ_TEXT_TITLE;
-        $this->description = MODULE_PAYMENT_BILLPLZ_TEXT_DESCRIPTION;
-        $thiglobals->sort_order = MODULE_PAYMENT_BILLPLZ_SORT_ORDER;
-        $this->enabled = ((MODULE_PAYMENT_BILLPLZ_STATUS == 'True') ? true : false);
-        $this->form_action_url = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']);
-        if (substr($this->form_action_url, -1) == '/') {
-            $this->form_action_url.="billplzcreate.php";
-        } else {
-            $this->form_action_url.="/billplzcreate.php";
-        }
-
-
+    public function __construct()
+    {
+        global $order;
         if ((int) MODULE_PAYMENT_BILLPLZ_ORDER_STATUS_ID > 0) {
             $this->order_status = MODULE_PAYMENT_BILLPLZ_ORDER_STATUS_ID;
         }
 
-        if (is_object($order))
+        if (is_object($order)) {
             $this->update_status();
+        }
+
+        /*
+         * Set Form Action URL on Checkout
+         */
+
+        $this->form_action_url = zen_href_link('billplz_ipn_handler.php', 'referer=goto', 'SSL', false, false, true);
     }
 
-    function update_status() {
-        global $order, $db;
-        if (($this->enabled == true) && ((int) MODULE_PAYMENT_BILLPLZ_ZONE > 0)) {
+    public function update_status()
+    {
+        global $db, $order;
+        if (($this->enabled === true) && (int) MODULE_PAYMENT_BILLPLZ_ZONE > 0) {
             $check_flag = false;
-            $check = $db->Execute("select zone_id from " . TABLE_ZONES_TO_GEO_ZONES . " where geo_zone_id = '" . MODULE_PAYMENT_BILLPLZ_ZONE . "' and zone_country_id = '" . $order->billing['country']['id'] . "' order by zone_id");
+            $check = $db->Execute("SELECT zone_id FROM " . TABLE_ZONES_TO_GEO_ZONES . " WHERE geo_zone_id = '" . MODULE_PAYMENT_BILLPLZ_ZONE . "' AND zone_country_id = '" . $order->billing['country']['id'] . "' ORDER BY zone_id");
+
             while (!$check->EOF) {
                 if ($check->fields['zone_id'] < 1) {
                     $check_flag = true;
@@ -52,46 +46,39 @@ class billplz {
                 }
                 $check->MoveNext();
             }
-            if ($check_flag == false) {
+
+            if (!$check_flag) {
                 $this->enabled = false;
             }
         }
     }
 
-    /**
-     * Check the user input submited on checkout_payment.php with javascript (client-side).
-     * 
-     * @return boolean
-     */
-    function javascript_validation() {
+    public function javascript_validation()
+    {
         return false;
     }
 
-    /**
-     * Display on payment selection
-     * 
-     * @global type $order
-     * @return array
-     */
-    function selection() {
-        global $order;
-
-        return array('id' => $this->code,
-            'module' => 'Billplz Online Payment Gateway'
-        );
+    public function selection()
+    {
+        return [
+            'id' => $this->code,
+            'module' => 'Billplz Payment Gateway',
+            'icon' => 'Billplz Payment Gateway'
+        ];
     }
 
-    function pre_confirmation_check() {
-        global $_POST;
+    public function pre_confirmation_check()
+    {
+        //Nothing
         return false;
     }
 
-    function confirmation() {
-
-        global $_POST, $languages_id, $shipping_cost, $total_cost, $shipping_selected, $shipping_method, $currencies, $currency, $customer_id, $db, $order;
-        // require('includes/application_top.php');
-        // include(DIR_WS_CLASSES . 'order.php');
-        // Create the order based on customer id
+    public function confirmation()
+    {
+        global $db, $order, $currencies;
+        /*
+         *  Create the order based on customer id
+         */
         $customer_id = $_SESSION['customer_id'];
         $customer_query = "SELECT c.`customers_firstname` , c.`customers_lastname` , c.`customers_email_address` , c.`customers_telephone`, ab.`entry_company` ,  ab.`entry_street_address` ,  ab.`entry_suburb` , ab.`entry_postcode` , ab.`entry_city` , ab.`entry_state` , ab.`entry_country_id` , 
               ab.`entry_zone_id` FROM " . TABLE_CUSTOMERS . " c JOIN " . TABLE_ADDRESS_BOOK . " ab ON ( c.`customers_default_address_id` = ab.`address_book_id` ) 
@@ -101,10 +88,7 @@ class billplz {
         $customer_info->fields['country_name'] = zen_get_country_name($customer_info->fields['entry_country_id']);
 
         $curr_obj = $order->info;
-        $currency = $curr_obj[currency];
-
-        $OrderAmt = number_format($order->info['total'] * $currencies->get_value($currency), $currencies->get_decimal_places($currency), '.', '');
-
+        $OrderAmt = number_format($order->info['total'] * $order->info['currency_value'], $currencies->get_decimal_places($order->info['currency']), '.', '');
         $order_query = array('customers_id' => $customer_id,
             'customers_name' => $customer_info->fields['customers_firstname'] . " " . $customer_info->fields['customers_lastname'],
             'customers_company' => $customer_info->fields['entry_company'],
@@ -135,193 +119,311 @@ class billplz {
             'billing_state' => $customer_info->fields['entry_state'],
             'billing_country' => $customer_info->fields['country_name'],
             'billing_address_format_id' => $customer_info->fields['format_id'],
-            'payment_method' => 'Billplz Online Payment Gateway(Visa, MasterCard, Maybank2u, MEPS, FPX, etc)',
-            'payment_module_code' => 'billplz',
-            'coupon_code' => ' ',
+            'shipping_method' => $order->info['shipping_method'],
+            'shipping_module_code' => $order->info['shipping_module_code'],
+            'payment_method' => $this->description,
+            'payment_module_code' => $this->code,
+            'coupon_code' => $order->info['coupon_code'],
             'date_purchased' => 'now()',
             'orders_status' => DEFAULT_ORDERS_STATUS_ID,
-            'currency' => DEFAULT_CURRENCY,
-            'currency_value' => $currency,
+            'currency' => $order->info['currency'],
+            'currency_value' => $order->info['currency_value'],
             'order_total' => $OrderAmt,
             'order_tax' => '0.00',
             'paypal_ipn_id' => '0',
             'ip_address' => $_SERVER['REMOTE_ADDR'] . " - " . $_SERVER['REMOTE_ADDR']
         );
-        //print_r($order_query);
         zen_db_perform(TABLE_ORDERS, $order_query);
-        $insert_id = $db->insert_ID();
+        $order_id = $db->insert_ID();
 
-        //Insert Order status History
-        $order_status = array('orders_id' => $insert_id,
+        /*
+         * Insert Order status History
+         */
+        $order_status = array('orders_id' => $order_id,
             'orders_status_id' => DEFAULT_ORDERS_STATUS_ID,
             'date_added' => 'now()'
         );
-        //echo '<br/>';
-        //print_r($order_status);
         zen_db_perform(TABLE_ORDERS_STATUS_HISTORY, $order_status);
 
-        //Insert Order Total
-        $order_total = array('orders_id' => $insert_id,
+        /*
+         * Insert Order Sub-Total
+         */
+        $order_total = array('orders_id' => $order_id,
             'title' => 'Sub-Total',
             'text' => $OrderAmt,
             'value' => $OrderAmt,
             'class' => "ot_subtotal",
             'sort_order' => "1");
-        //echo '<br/>';
-        //print_r($order_total);
         zen_db_perform(TABLE_ORDERS_TOTAL, $order_total);
 
-        $order_total = array('orders_id' => $insert_id,
+        /*
+         * Insert Shipping Total
+         */
+
+        $order_total = array('orders_id' => $order_id,
             'title' => '',
-            'text' => "0.00",
-            'value' => "0.00",
+            'text' => $order->info['shipping_cost'],
+            'value' => $order->info['shipping_cost'],
             'class' => "ot_shipping",
             'sort_order' => "2");
-        //echo '<br/>';
-        //print_r($order_total);
         zen_db_perform(TABLE_ORDERS_TOTAL, $order_total);
 
-        $order_total = array('orders_id' => $insert_id,
+        /*
+         * Insert Order Total with Currency Symbol
+         */
+        $order_total = array('orders_id' => $order_id,
             'title' => 'Total',
-            'text' => $OrderAmt,
+            'text' => $order->info['currency'] . " " . $OrderAmt,
             'value' => $OrderAmt,
             'class' => "ot_total",
             'sort_order' => "3");
-        //echo '<br/>';
-        //print_r($order_total);
         zen_db_perform(TABLE_ORDERS_TOTAL, $order_total);
 
-        // zen_redirect(zen_href_link("edit_orders.php", zen_get_all_get_params(array('action')) . 'action=edit&oID='.$insert_id));
-
-        $customers_query = $db->Execute("select customers_id, CONCAT( customers_firstname, ' ', customers_lastname ) AS customers_fullname, customers_email_address from " . TABLE_CUSTOMERS . " ORDER BY customers_firstname");
-        while (!$customers_query->EOF) {
-            $customers[] = array('id' => $customers_query->fields['customers_id'],
-                'text' => $customers_query->fields['customers_fullname'] . ' (' . $customers_query->fields['customers_email_address'] . ')');
-            $customers_query->MoveNext();
-        }
-
         foreach ($order->products as $product) {
-            $thisProduct = $db->Execute("select products_id from " . TABLE_PRODUCTS_DESCRIPTION . "
-                                where products_name = '" . $product['name'] . "'");
+            $sql_data_array = array(
+                'orders_id' => $order_id,
+                'products_id' => $product['id'],
+                'products_model' => $product['model'],
+                'products_name' => $product['name'],
+                'products_price' => $product['price'],
+                'final_price' => $product['final_price'],
+                'products_tax' => $product['tax'],
+                'products_quantity' => $product['qty'],
+                'onetime_charges' => $product['onetime_charges'],
+                'products_priced_by_attribute' => $product['products_priced_by_attribute'],
+                'product_is_free' => $product['product_is_free'],
+                'products_discount_type' => $product['products_discount_type'],
+                'products_discount_type_from' => $product['products_discount_type_from'],
+                'products_prid' => '');
+            zen_db_perform(TABLE_ORDERS_PRODUCTS, $sql_data_array);
 
-            $productId = $thisProduct->fields['products_id'];
-
-            $db->Execute("update " . TABLE_PRODUCTS . "
-                                set products_quantity = products_quantity - '" . $product['qty'] . "'
-                                where products_id = '" . $productId . "'");
+            $db->Execute("UPDATE " . TABLE_PRODUCTS . " SET products_quantity = products_quantity - '" . $product['qty'] . "' WHERE products_id = '" . $product['id'] . "'");
         }
 
+        $_SESSION['order_id_billplz'] = $order_id;
         return false;
     }
+    /*
+     * Method yang dipanggil pada Order Confirmation Page
+     */
 
-    function process_button() {
-        global $_POST, $languages_id, $shipping_cost, $total_cost, $shipping_selected, $shipping_method, $currencies, $currency, $customer_id, $db, $order;
+    public function process_button()
+    {
+        global $order, $currencies, $db;
 
-        $prod = $order->products;
-
-        while (list($key, $val) = each($order->products)) {
-            $pname.= $val[name] . " x " . $val[qty] . "\n";
+        $amount = $order->info['total'] = zen_round($order->info['total'], 2);
+        $mobile = preg_replace('/\D/', '', $order->customer['telephone']);
+        $api_key = MODULE_PAYMENT_BILLPLZ_API_KEY;
+        $x_signature = MODULE_PAYMENT_BILLPLZ_X_SIGNATURE;
+        $collection_id = MODULE_PAYMENT_BILLPLZ_COLLECTION_ID;
+        $deliver = MODULE_PAYMENT_BILLPLZ_NOTIFY;
+        $description = '';
+        foreach ($order->products as $key => $value) {
+            $description .= $value['name'] . " x " . $value['qty'] . ". ";
         }
+        $email = $order->customer['email_address'];
+        $first_name = replace_accents($order->customer['firstname']);
+        $last_name = replace_accents($order->customer['lastname']);
+        $name = $first_name . ' ' . $last_name;
+        $ipn_url = zen_href_link('billplz_ipn_handler.php', '', 'SSL', false, false, true);
 
-        $zenId = zen_session_name() . '=' . zen_session_id();
-        $cartId = zen_session_id();
-        $curr_obj = $order->info;
-        $currency = $curr_obj[currency];
+        $order_id = $_SESSION['order_id_billplz'];
+        unset($_SESSION['order_id_billplz']);
 
-        $OrderAmt = number_format($order->info['total'] * $currencies->get_value($currency), $currencies->get_decimal_places($currency), '.', '');
+        /*
+         *  Prepare Data for Validation SHA256
+         *  Objective: Prevent Data from being altered by the user
+         *  Data arranged: amount+mobile+api_key+collection_id+deliver
+         *                 +email+name+ipn_url+order_id
+         *  Signed with: x_signature
+         *  Rules: All Lower-Case + Strip to only 6 characters
+         */
 
-        $oid_sql = "select Max(orders_id) as oid from " . TABLE_ORDERS . " ";
-        $oid = $db->Execute($oid_sql);
-        $oid = $oid->fields['oid'];
-        $modeprosand = MODULE_PAYMENT_BILLPLZ_MODE;
-        //$vcode = md5($OrderAmt.MODULE_PAYMENT_BILLPLZ_ID.$oid.MODULE_PAYMENT_BILLPLZ_VKEY);
-        $passwordapi = password_hash(MODULE_PAYMENT_BILLPLZ_ID, PASSWORD_DEFAULT);
-        $process_button_string = zen_draw_hidden_field('currency', strtolower($currency)) .
-                zen_draw_hidden_field('passwordapi', $passwordapi) .
-                zen_draw_hidden_field('bill_desc', $pname) .
-                zen_draw_hidden_field('orderid', $oid) .
-                zen_draw_hidden_field('modestaging', $modeprosand) .
-                //zen_draw_hidden_field('vcode', $vcode).
-                zen_draw_hidden_field('amount', $OrderAmt);
+        $preparedString = strtolower($amount . $mobile . $api_key . $collection_id . $deliver . $email . $name . $ipn_url . $order_id);
+        $hash_verify = substr(hash_hmac('sha256', $preparedString, $x_signature), 0, 5);
 
-        $language_code_raw = "select code from " . TABLE_LANGUAGES . " where languages_id ='$languages_id'";
-        $language_code = $db->Execute($language_code_raw);
+        $str_display = zen_draw_hidden_field('description', $description);
+        $str_display .= zen_draw_hidden_field('email', $email);
+        $str_display .= zen_draw_hidden_field('name', $name);
+        $str_display .= zen_draw_hidden_field('ipn_url', $ipn_url);
+        $str_display .= zen_draw_hidden_field('order_id', $order_id);
+        $str_display .= zen_draw_hidden_field('mobile', $mobile);
+        $str_display .= zen_draw_hidden_field('amount', $amount);
+        $str_display .= zen_draw_hidden_field('hash_verify', $hash_verify);
 
-        $process_button_string.=
-                zen_draw_hidden_field('bill_name', $order->customer['firstname'] . ' ' . $order->customer['lastname']) .
-                zen_draw_hidden_field('country', $order->customer['country']['iso_code_2']) .
-                zen_draw_hidden_field('bill_mobile', $order->customer['telephone']) .
-                zen_draw_hidden_field('bill_email', $order->customer['email_address']);
-
-        return $process_button_string;
+        return $str_display;
     }
 
-    function before_process() {
-        //global $_POST;
+    public function before_process()
+    {
+        //Nothing
     }
 
-    function after_process() {
-        return false;
+    public function after_process()
+    {
+        //Nothing
     }
 
-    function get_error() {
-        global $_GET;
-
-        $error = array('title' => 'Billplz Error',
-            'error' => 'Error Detail');
-
-        //return false;
-    }
-
-    function check() {
+    public function check()
+    {
         global $db;
         if (!isset($this->_check)) {
-            $check_query = $db->Execute("select configuration_value from " . TABLE_CONFIGURATION . " where configuration_key = 'MODULE_PAYMENT_BILLPLZ_STATUS'");
+            $check_query = $db->Execute("SELECT configuration_value FROM " . TABLE_CONFIGURATION . " WHERE configuration_key = 'MODULE_PAYMENT_BILLPLZ_STATUS'");
             $this->_check = $check_query->RecordCount();
         }
         return $this->_check;
     }
 
-    function install() {
+    private static function getDBPresetFormat()
+    {
+        $array = [
+            'configuration_title' => [
+                'Enable Billplz',
+                'API Secret Key',
+                'X Signature Key',
+                'Collection ID',
+                'Send Bills to Customer',
+                'Sort Order of display',
+                'Set Order Status',
+            ],
+            'configuration_key' => [
+                'MODULE_PAYMENT_BILLPLZ_STATUS',
+                'MODULE_PAYMENT_BILLPLZ_API_KEY',
+                'MODULE_PAYMENT_BILLPLZ_X_SIGNATURE',
+                'MODULE_PAYMENT_BILLPLZ_COLLECTION_ID',
+                'MODULE_PAYMENT_BILLPLZ_NOTIFY',
+                'MODULE_PAYMENT_BILLPLZ_SORT_ORDER',
+                'MODULE_PAYMENT_BILLPLZ_ORDER_STATUS_ID',
+            ],
+            'configuration_value' => [
+                'True',
+                '',
+                '',
+                '',
+                '',
+                '0',
+                '0',
+            ],
+            'configuration_description' => [
+                'Do you want to accept payment using Billplz?',
+                'Your Billplz API Secret Key',
+                'Your Billplz X Signature Key',
+                'Your Billplz Collection ID. If unsure, leave blank',
+                'We recommend to set to Do Not Send',
+                'Sort order of display. Lowest is displayed first.',
+                'Set the status of orders made with this payment module to this value',
+            ],
+            'configuration_group_id' => [
+                '6',
+                '6',
+                '6',
+                '6',
+                '6',
+                '6',
+                '6',
+            ],
+            'sort_order' => [
+                '1',
+                '2',
+                '3',
+                '4',
+                '5',
+                '6',
+                '7',
+            ],
+            'set_function' => [
+                'zen_cfg_select_option(array(\'True\', \'False\'),',
+                'NULL',
+                'NULL',
+                'NULL',
+                //'zen_cfg_select_option(array(\'True\', \'False\'),',
+                'zen_cfg_select_drop_down(array(array(\'id\'=>\'0\', \'text\'=>\'Do Not Send\'),array(\'id\'=>\'1\', \'text\'=>\'Send Email (FREE)\'),array(\'id\'=>\'2\', \'text\'=>\'Send SMS (RM0.15)\'),array(\'id\'=>\'3\', \'text\'=>\'Send Both (RM0.15)\')),',
+                'NULL',
+                'zen_cfg_pull_down_order_statuses(',
+            ],
+            'use_function' => [
+                'NULL',
+                'NULL',
+                'NULL',
+                'NULL',
+                'NULL',
+                'NULL',
+                'zen_get_order_status_name',
+            ],
+            'date_added' => [
+                'now()',
+                'now()',
+                'now()',
+                'now()',
+                'now()',
+                'now()',
+                'now()',
+            ]
+        ];
+        return $array;
+    }
+
+    public function install()
+    {
         global $db;
-        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, date_added) values 
-        ('Enable Billplz Module', 'MODULE_PAYMENT_BILLPLZ_STATUS', 'True', 'Do you want to accept Billplz payments?', '6', '1', 'zen_cfg_select_option(array(\'True\', \'False\'), ', now())");
-
-        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values
-         ('API Key', 'MODULE_PAYMENT_BILLPLZ_ID', '', 'Your Billplz API Key', '6', '2', now())");
-
-        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values
-         ('Collection ID', 'MODULE_PAYMENT_BILLPLZ_VKEY', '', 'Your Billplz Collection ID', '6', '5', now())");
-
-        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values
-         ('Mode: Production/Staging', 'MODULE_PAYMENT_BILLPLZ_MODE', '', 'Insert 1 for Production, 2 for Staging. <i>e.g : 1</i>', '6', '5', now())");
-
-        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values
-         ('Sort order of display.', 'MODULE_PAYMENT_BILLPLZ_SORT_ORDER', '0', 'Sort order of display. Lowest is displayed first.', '6', '0', now())");
-
-        $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, use_function, date_added) values
-         ('Set Order Status', 'MODULE_PAYMENT_BILLPLZ_ORDER_STATUS_ID', '0', 'Set the status of orders made with this payment module to this value', '6', '0', 'zen_cfg_pull_down_order_statuses(', 'zen_get_order_status_name', now())");
+        $dbpreset = self::getDBPresetFormat();
+        $this->installDatabase($dbpreset);
+        $this->notify('NOTIFY_PAYMENT_BILLPLZ_INSTALLED');
     }
 
-    function remove() {
+    private function installDatabase($dbpreset)
+    {
         global $db;
-        $db->Execute("delete from " . TABLE_CONFIGURATION . " where configuration_key in ('" . implode("', '", $this->keys()) . "')");
+        for ($i = 0; $i < sizeof($dbpreset['configuration_title']); $i++) {
+            $sql = 'INSERT INTO ' . TABLE_CONFIGURATION . ' (';
+
+            $arrayKeys = array_keys($dbpreset);
+            $lastArrayKey = end($arrayKeys);
+
+            foreach ($arrayKeys as $key) {
+                if ($key != $lastArrayKey) {
+                    $sql .= $key . ', ';
+                } else {
+                    $sql .= $key;
+                }
+            }
+
+            $sql .= ') values (';
+
+            foreach ($arrayKeys as $key) {
+                if ($dbpreset[$key][$i] !== 'NULL' && $dbpreset[$key][$i] !== 'now()') {
+                    $sql .= '"' . $dbpreset[$key][$i] . '"';
+                } else {
+                    $sql .= $dbpreset[$key][$i];
+                }
+                if ($key != $lastArrayKey) {
+                    $sql .= ', ';
+                }
+            }
+            $sql .= ')';
+
+            $db->Execute($sql);
+        }
     }
 
-////////////////////////////////////////////////////
-// Create our Key - > Value Arrays
-////////////////////////////////////////////////////
-    function keys() {
-        return array(
-            'MODULE_PAYMENT_BILLPLZ_STATUS'
-            , 'MODULE_PAYMENT_BILLPLZ_ID'
-            , 'MODULE_PAYMENT_BILLPLZ_VKEY'
-            , 'MODULE_PAYMENT_BILLPLZ_MODE'
-            , 'MODULE_PAYMENT_BILLPLZ_SORT_ORDER'
-            , 'MODULE_PAYMENT_BILLPLZ_ORDER_STATUS_ID'
-        );
+    public function remove()
+    {
+        global $db;
+        $db->Execute('DELETE FROM ' . TABLE_CONFIGURATION . ' WHERE configuration_key LIKE "MODULE_PAYMENT_BILLPLZ_%"');
+        $this->notify('NOTIFY_PAYMENT_BILLPLZ_UNINSTALLED');
     }
 
+    public function keys()
+    {
+        return [
+            'MODULE_PAYMENT_BILLPLZ_STATUS',
+            'MODULE_PAYMENT_BILLPLZ_SORT_ORDER',
+            'MODULE_PAYMENT_BILLPLZ_ORDER_STATUS_ID',
+            'MODULE_PAYMENT_BILLPLZ_ZONE',
+            'MODULE_PAYMENT_BILLPLZ_API_KEY',
+            'MODULE_PAYMENT_BILLPLZ_X_SIGNATURE',
+            'MODULE_PAYMENT_BILLPLZ_COLLECTION_ID',
+            'MODULE_PAYMENT_BILLPLZ_NOTIFY',
+        ];
+    }
 }
-
-?>
