@@ -73,16 +73,25 @@ $comment = 'Bill ID: ' . $data['id'] . ' | ';
 $comment .= 'Bill URL: ' . $moreData['url'];
 
 if ($data['paid']) {
-    $order_status_id = (int) MODULE_PAYMENT_BILLPLZ_ORDER_STATUS_ID;
-    $db->Execute("UPDATE " . TABLE_ORDERS . "
-    set orders_status = " . $order_status_id . " where orders_id = '" . (int) $order_id . "'");
-    $sql_data_array = array('orders_id' => (int) $order_id,
-        'orders_status_id' => 2,
+
+    if ((int) MODULE_PAYMENT_BILLPLZ_ORDER_STATUS_ID > 0) {
+        $order_status_id = (int) MODULE_PAYMENT_BILLPLZ_ORDER_STATUS_ID;
+    } else {
+        $order_status_id = (int) DEFAULT_ORDERS_STATUS_ID;
+    }
+    
+    $update_db = array('orders_status' => $order_status_id);
+    zen_db_perform(TABLE_ORDERS, $update_db, "update", "orders_id='" . $order_id . "' ");
+    
+    $sql_data_array = array(
+        'orders_id' => (int) $order_id,
+        'orders_status_id' => $order_status_id,
         'date_added' => 'now()',
         'customer_notified' => false,
         'comments' => $comment
     );
     zen_db_perform(TABLE_ORDERS_STATUS_HISTORY, $sql_data_array);
+ 
 }
 
 /*

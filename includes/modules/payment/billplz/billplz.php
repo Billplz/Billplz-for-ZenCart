@@ -1,4 +1,5 @@
 <?php
+
 require 'vendor/autoload.php';
 
 use GuzzleHttp\Client;
@@ -6,8 +7,7 @@ use GuzzleHttp\Exception\ClientException;
 
 if (!class_exists('BillplzGuzzle')) {
 
-    class BillplzGuzzle
-    {
+    class BillplzGuzzle {
 
         public static $version = 3.04;
         var $array, $obj, $url, $id, $deliverLevel, $errorMessage;
@@ -20,8 +20,7 @@ if (!class_exists('BillplzGuzzle')) {
         public static $api_key = '4e49de80-1670-4606-84f8-2f1d33a38670';
         public static $x_signature = 'S-0Sq67GFD9Y5iXmi5iXMKsA';
 
-        public function __construct($api_key = '')
-        {
+        public function __construct($api_key = '') {
             $this->array = array();
             $this->obj = new BillplzAction;
             if (empty($api_key)) {
@@ -30,13 +29,13 @@ if (!class_exists('BillplzGuzzle')) {
                 $this->obj->setAPI($api_key);
             }
         }
+
         /*
          * Calling it with empty parameter will result to staging API Key
          * Default: Staging API Key
          */
 
-        public function setAPIKey($api_key = '')
-        {
+        public function setAPIKey($api_key = '') {
             if (empty($api_key)) {
                 $this->obj->setAPI(self::$api_key);
             } else {
@@ -45,8 +44,7 @@ if (!class_exists('BillplzGuzzle')) {
             return $this;
         }
 
-        public function getCollectionIndex($page = '1', $mode = '', $status = null)
-        {
+        public function getCollectionIndex($page = '1', $mode = '', $status = null) {
 
             /*
              * Identify mode if not supplied
@@ -59,28 +57,27 @@ if (!class_exists('BillplzGuzzle')) {
             $this->obj->setAction('GETCOLLECTIONINDEX');
 
             $this->obj->setURL($mode);
-            $array = [
+            $array = array (
                 'page' => $page,
                 'status' => $status,
-            ];
+            );
             $data = $this->obj->curl_action($array);
 
             return $data;
         }
 
-        public static function getRedirectData($signkey = '')
-        {
+        public static function getRedirectData($signkey = '') {
 
             if (empty($signkey)) {
                 $signkey = self::$x_signature;
             }
 
-            $data = [
+            $data = array (
                 'id' => isset($_GET['billplz']['id']) ? $_GET['billplz']['id'] : self::throwException('Billplz ID is not supplied'),
                 'paid_at' => isset($_GET['billplz']['paid_at']) ? $_GET['billplz']['paid_at'] : self::throwException('Please enable Billplz XSignature Payment Completion'),
                 'paid' => isset($_GET['billplz']['paid']) ? $_GET['billplz']['paid'] : self::throwException('Please enable Billplz XSignature Payment Completion'),
                 'x_signature' => isset($_GET['billplz']['x_signature']) ? $_GET['billplz']['x_signature'] : self::throwException('Please enable Billplz XSignature Payment Completion'),
-            ];
+            );
             $preparedString = '';
             foreach ($data as $key => $value) {
                 $preparedString .= 'billplz' . $key . $value;
@@ -104,19 +101,17 @@ if (!class_exists('BillplzGuzzle')) {
             }
         }
 
-        public static function throwException($message)
-        {
+        public static function throwException($message) {
             throw new Exception($message);
         }
 
-        public static function getCallbackData($signkey = '')
-        {
+        public static function getCallbackData($signkey = '') {
 
             if (empty($signkey)) {
                 $signkey = self::$x_signature;
             }
 
-            $data = [
+            $data = array (
                 'amount' => isset($_POST['amount']) ? $_POST['amount'] : self::throwException('Amount is not supplied'),
                 'collection_id' => isset($_POST['collection_id']) ? $_POST['collection_id'] : self::throwException('Collection ID is not supplied'),
                 'due_at' => isset($_POST['due_at']) ? $_POST['due_at'] : '',
@@ -130,7 +125,7 @@ if (!class_exists('BillplzGuzzle')) {
                 'state' => isset($_POST['state']) ? $_POST['state'] : self::throwException('State is not supplied'),
                 'url' => isset($_POST['url']) ? $_POST['url'] : self::throwException('URL is not supplied'),
                 'x_signature' => isset($_POST['x_signature']) ? $_POST['x_signature'] : self::throwException('X Signature is not enabled'),
-            ];
+            );
             $preparedString = '';
             foreach ($data as $key => $value) {
                 $preparedString .= $key . $value;
@@ -153,13 +148,13 @@ if (!class_exists('BillplzGuzzle')) {
                 self::throwException('Data has been tempered');
             }
         }
+
         /*
          * Return true if delete bill success
          * Return false if delete bill not success
          */
 
-        public function deleteBill($bill_id, $mode = '')
-        {
+        public function deleteBill($bill_id, $mode = '') {
 
             /*
              * Identify mode if not supplied
@@ -175,11 +170,21 @@ if (!class_exists('BillplzGuzzle')) {
             if (empty($data)) {
                 return true;
             }
+            
+            /*
+             * In case of the system admin changing Billplz Account, 
+             * the bills that trying to be deleted not in the new account,
+             * think it as success
+             */
+            
+            if ($data['type']==='RecordNotFound'){
+                return true;
+            }
+            
             return false;
         }
 
-        public function checkMobileNumber($mobile)
-        {
+        public function checkMobileNumber($mobile) {
             $mobile = preg_replace("/[^0-9]/", "", $mobile);
             $custTel = $mobile;
             $custTel2 = substr($mobile, 0, 1);
@@ -197,38 +202,32 @@ if (!class_exists('BillplzGuzzle')) {
             } return $custTel;
         }
 
-        public function setCollection($collection_id)
-        {
+        public function setCollection($collection_id) {
             $this->array['collection_id'] = $collection_id;
             return $this;
         }
 
-        public function setName($name)
-        {
+        public function setName($name) {
             $this->array['name'] = $name;
             return $this;
         }
 
-        public function setEmail($email)
-        {
+        public function setEmail($email) {
             $this->array['email'] = $email;
             return $this;
         }
 
-        public function setMobile($mobile)
-        {
+        public function setMobile($mobile) {
             $this->array['mobile'] = $this->checkMobileNumber($mobile);
             return $this;
         }
 
-        public function setAmount($amount)
-        {
+        public function setAmount($amount) {
             $this->array['amount'] = $amount * 100;
             return $this;
         }
 
-        public function setDeliver($deliver)
-        {
+        public function setDeliver($deliver) {
             /*
              * '0' => No Notification
              * '1' => Email Notification
@@ -243,53 +242,46 @@ if (!class_exists('BillplzGuzzle')) {
             return $this;
         }
 
-        public function setReference_1($reference_1)
-        {
+        public function setReference_1($reference_1) {
             if (!empty($reference_1)) {
                 $this->array['reference_1'] = substr($reference_1, 0, 119);
             }
             return $this;
         }
 
-        public function setReference_2($reference_2)
-        {
+        public function setReference_2($reference_2) {
             if (!empty($reference_2)) {
                 $this->array['reference_2'] = substr($reference_2, 0, 119);
             }
             return $this;
         }
 
-        public function setDescription($description)
-        {
+        public function setDescription($description) {
             $this->array['description'] = substr($description, 0, 199);
             return $this;
         }
 
-        public function setPassbackURL($callback_url, $redirect_url = '')
-        {
+        public function setPassbackURL($callback_url, $redirect_url = '') {
             $this->array['redirect_url'] = $redirect_url;
             $this->array['callback_url'] = $callback_url;
             return $this;
         }
 
-        public function setReference_1_Label($label)
-        {
+        public function setReference_1_Label($label) {
             if (!empty($label)) {
                 $this->array['reference_1_label'] = substr($label, 0, 19);
             }
             return $this;
         }
 
-        public function setReference_2_Label($label)
-        {
+        public function setReference_2_Label($label) {
             if (!empty($label)) {
                 $this->array['reference_2_label'] = substr($label, 0, 19);
             }
             return $this;
         }
 
-        public function create_collection($title = 'Payment For Purchase', $mode = '')
-        {
+        public function create_collection($title = 'Payment For Purchase', $mode = '') {
 
             /*
              * Identify mode if not supplied
@@ -302,24 +294,24 @@ if (!class_exists('BillplzGuzzle')) {
             $this->obj->setAction('COLLECTIONS');
 
             $this->obj->setURL($mode);
-            $data = [
+            $data = array (
                 'title' => $title
-            ];
+            );
             $collection = $this->obj->curl_action($data);
             return $collection['id'];
         }
+
         /*
          * Determine the API Key is belong to Production or Staging
          * Else, exit the program.
          */
 
-        public function check_api_key()
-        {
+        public function check_api_key() {
             $this->obj->setAction('GETCOLLECTIONINDEX');
-            $array = [
+            $array = array(
                 'page' => '1',
                 'status' => null,
-            ];
+            );
             $this->obj->setURL('Production');
 
             $status = $this->obj->curl_action($array);
@@ -340,13 +332,11 @@ if (!class_exists('BillplzGuzzle')) {
             }
         }
 
-        public function get_api_key_status()
-        {
+        public function get_api_key_status() {
             return $this->api_key_status;
         }
 
-        public function check_collection_id($collection_id, $mode = '')
-        {
+        public function check_collection_id($collection_id, $mode = '') {
 
             /*
              * Identify mode if not supplied
@@ -358,9 +348,9 @@ if (!class_exists('BillplzGuzzle')) {
 
             $this->obj->setAction('CHECKCOLLECTION');
             $this->obj->setURL($mode);
-            $data = [
+            $data = array (
                 'id' => $collection_id
-            ];
+            );
             $status = $this->obj->curl_action($data);
             if (isset($status['id'])) {
                 if ($status['id'] == $collection_id) {
@@ -369,6 +359,7 @@ if (!class_exists('BillplzGuzzle')) {
             }
             return false;
         }
+
         /*
          * Return the first active collection on first page.
          * If none, return the first collection of inactive collection.
@@ -376,8 +367,7 @@ if (!class_exists('BillplzGuzzle')) {
          * If collection is not created yet, create one
          */
 
-        public function get_active_collection($data)
-        {
+        public function get_active_collection($data) {
             if (empty($data['collections'])) {
                 $collection_id = $this->create_collection();
             } else {
@@ -393,8 +383,7 @@ if (!class_exists('BillplzGuzzle')) {
             return $collection_id;
         }
 
-        public function get_transaction_index($bill_id, $page = '1', $status = 'completed', $mode = '')
-        {
+        public function get_transaction_index($bill_id, $page = '1', $status = 'completed', $mode = '') {
             /*
              * Identify mode if not supplied
              */
@@ -406,17 +395,16 @@ if (!class_exists('BillplzGuzzle')) {
             $this->obj->setAction('GETTRANSACTIONINDEX');
 
             $this->obj->setURL($mode, $bill_id);
-            $array = [
+            $array = array (
                 'page' => $page,
                 'status' => $status,
-            ];
+            );
             $data = $this->obj->curl_action($array);
 
             return $data;
         }
 
-        public function get_bill_paid_time($bill_id, $mode = '')
-        {
+        public function get_bill_paid_time($bill_id, $mode = '') {
             $array = $this->get_transaction_index($bill_id, $mode);
 
             foreach ($array['transactions'] as $transactions) {
@@ -428,8 +416,7 @@ if (!class_exists('BillplzGuzzle')) {
             return '';
         }
 
-        public function create_bill($checkCollection = false, $mode = '')
-        {
+        public function create_bill($checkCollection = false, $mode = '') {
             /*
              * Identify mode if not supplied
              */
@@ -509,26 +496,23 @@ if (!class_exists('BillplzGuzzle')) {
             return $this;
         }
 
-        public function getURL()
-        {
+        public function getURL() {
             return $this->url;
         }
 
-        public function getErrorMessage()
-        {
+        public function getErrorMessage() {
             return $this->errorMessage;
         }
 
-        public function getID()
-        {
+        public function getID() {
             return $this->id;
         }
+
         /*
          * Get Bills 
          */
 
-        public function check_bill($bill_id, $mode = '')
-        {
+        public function check_bill($bill_id, $mode = '') {
 
             /*
              * Identify mode if not supplied
@@ -542,29 +526,26 @@ if (!class_exists('BillplzGuzzle')) {
             $data = $this->obj->curl_action();
             return $data;
         }
+
     }
 
-    class BillplzAction
-    {
+    class BillplzAction {
 
         var $url, $action, $curldata, $api_key;
         public static $production = 'https://www.billplz.com/api/v3/';
         public static $staging = 'https://billplz-staging.herokuapp.com/api/v3/';
 
-        public function setAPI($api_key)
-        {
+        public function setAPI($api_key) {
             $this->api_key = $api_key;
             return $this;
         }
 
-        public function setAction($action)
-        {
+        public function setAction($action) {
             $this->action = $action;
             return $this;
         }
 
-        public function setURL($mode, $id = '')
-        {
+        public function setURL($mode, $id = '') {
             if ($mode == 'Staging') {
                 $this->url = self::$staging;
             } elseif ($mode == 'Production') {
@@ -586,8 +567,7 @@ if (!class_exists('BillplzGuzzle')) {
             return $this;
         }
 
-        public function curl_action($data = '')
-        {
+        public function curl_action($data = '') {
 
             if ($this->action == 'GETCOLLECTIONINDEX' || $this->action == 'GETTRANSACTIONINDEX') {
                 $this->url .= '?page=' . $data['page'] . '&status=' . $data['status'];
@@ -617,10 +597,10 @@ if (!class_exists('BillplzGuzzle')) {
                 $reqType = 'POST';
             }
 
-            $preparedHeader = [
+            $preparedHeader = array (
                 'auth' => [$this->api_key, ''],
                 'verify' => false,
-            ];
+            );
 
             if ($this->action == 'CREATE' || $this->action == 'COLLECTIONS') {
                 $preparedHeader['form_params'] = $data;
@@ -637,6 +617,7 @@ if (!class_exists('BillplzGuzzle')) {
 
             return $this->curldata;
         }
+
     }
 
 }

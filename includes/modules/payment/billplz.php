@@ -173,7 +173,7 @@ class billplz extends base
          */
         $order_total = array('orders_id' => $order_id,
             'title' => 'Total',
-            'text' => $order->info['currency'] . " " . $OrderAmt,
+            'text' => $currencies->currencies['MYR']['symbol_left'] . " " . $OrderAmt,
             'value' => $OrderAmt,
             'class' => "ot_total",
             'sort_order' => "3");
@@ -260,6 +260,17 @@ class billplz extends base
     }
 
     public function after_process()
+    {
+        //Nothing
+    }
+
+    /**
+     * Build admin-page components
+     *
+     * @param int $zf_order_id
+     * @return string
+     */
+    public function admin_notification($zf_order_id)
     {
         //Nothing
     }
