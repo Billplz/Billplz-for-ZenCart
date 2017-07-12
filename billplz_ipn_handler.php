@@ -108,7 +108,7 @@ if (isset($_GET['billplz']['id'])) {
     if ($data['paid']) {
         $db->Execute("DELETE FROM " . TABLE_CUSTOMERS_BASKET);
         unset($_SESSION['cart']);
-        zen_redirect(zen_href_link(FILENAME_CHECKOUT_PROCESS, '', $ssl, true, false));
+        zen_redirect(zen_href_link(FILENAME_CHECKOUT_SUCCESS, '', $ssl, true, false));
     } else {
         $db->Execute("UPDATE " . TABLE_ORDERS_STATUS_HISTORY . " SET comments = '" . $comment . "' where orders_id = '" . (int) $order_id . "'");
 
