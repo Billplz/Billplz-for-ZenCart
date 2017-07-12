@@ -1,5 +1,6 @@
 # Billplz for ZenCart
 Accept Payment Using Billplz
+*This project is no longer supported. Any issues will be deleted and not be considerated.
 
 # Features
 1. Using Billplz API V3
